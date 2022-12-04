@@ -1,0 +1,118 @@
+---
+title: "Projet Coinertie / Master 2 ECOMONT"
+author: "Marine Souchier"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::readthedown:
+    highlight: kate
+    number_sections: TRUE
+    tableOfContents: {
+      minHeadingLevel: 3,
+      maxHeadingLevel: 5,
+      
+    }
+    df_print: kable
+---
+
+Ce projet est réalisé dans le cadre du Master 2 ECOMONT et porte sur l'étude de coinertie de données de dominances végétales et des paramètres abiotiques associés collectés sur 54 plots du site d'ARAVO.
+
+# Chargement des librairies
+***
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(corrplot)
+library(ade4)
+library(kableExtra)
+library(knitr)
+library(splines)
+library(plotly)
+library(DT)
+library(Hmisc)
+library(FactoMineR)
+```
+
+# Import et description du jeu de données
+***
+
+## Import du tableau des espèces
+
+```{r, echo=FALSE, fig.cap="Tableau 1: Tableau des espèces."}
+setwd(".")
+spe <- read.csv2('Especes.csv', row.names = 1)
+datatable(spe, rownames = FALSE, filter="top", options = list(pageLength = 5, scrollX=T))
+```
+
+Le tableau des espèces rassemble les informations de présence/absence d'espèces en tant qu'espèces dominantes sur 54 quadrats de 1 m sur 1 m du site d'ARAVO.
+
+## Import du tableau abiotique
+
+```{r, echo=FALSE, fig.cap="Tableau 1: Tableau abiotique."}
+setwd(".")
+env <- read.csv2('Abiotique.csv', dec = ".", row.names = 1)
+datatable(env, rownames = TRUE, filter="top", options = list(pageLength = 5, scrollX=T))
+```
+
+Le tableau abiotique rassemble les paramètres abiotiques associés aux 54 quadrats à savoir:
+-l'Aspect = la direction horizontale de la pente. 0° signifie que la pente est face au Nord, 90° face à l’Est, 180° face au sud et 270° face à l’Ouest.
+-L'Altitude issu du MNT
+-le TPI (topographic position index) qui correspond à la différence entre la valeur d'altitude du plot et l'altitude moyenne du voisinage autour de cette cellule. Les valeurs positives signifient que la cellule est plus haute que son environnement tandis que les valeurs négatives signifient qu'elle est plus basse. Si le TPI est nettement plus élevé que le quartier environnant, il est probable qu'il se trouve au sommet ou à proximité du sommet d'une colline ou d'une crête. Des valeurs significativement basses suggèrent que la cellule se trouve au fond ou près du fond d'une vallée. Les valeurs TPI proches de zéro peuvent signifier soit une zone plate, soit une zone à mi-pente, de sorte que la pente de la cellule peut être utilisée pour distinguer les deux.
+-le pH obtenue à l'aide d'un pHmètre
+-la teneur en eau obtenue à partir de mesures de conductimétrie
+-la clarté du sol L qui constitue un proxy de la teneur en matière organique du sol. Ce paramètre suit une échelle psychométrique allant de 0 à 100. La valeur 100 représente le blanc ou la réflexion totale ; la valeur 0, le noir ou l'absorption totale. 
+-la pente des sites récupérée du MNT
+
+# AFC du tableau des espèces
+## Représentation graphique de l'AFC
+
+```{r out.width=c('50%', '50%'), fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 1: AFC du tableau des espèces"}
+coa1 <-dudi.coa(spe, scannf=FALSE, nf=2)
+par(mfrow=c(2,1))
+s.label(coa1$co, clabel=0.7)
+s.label(coa1$li, clabel=0.7)
+```
+
+## Interprétation des résultats
+
+On observe un étagement des espèces avec les espèces plutôt typiques des crêtes ventées situées en bas du graphique (Poa alpina, Carex myosuroides, Festuca violacea, Potentilla crantzii), les espèces plutôt typiques des combes à neige situées en haut du graphique (Carex foetida, Alchemilla pentaphyllea) et les espèces de milieu de versant au milieu du graphique.
+
+# ACP du tableau abiotique
+## Gestion des valeurs NA
+
+
+```{r, message=FALSE, warning=FALSE}
+which(is.na(env),arr.ind=TRUE)
+env2 <- env
+env2[is.na(env2)] <- mean(env$TeneurEau, na.rm = T)
+```
+
+L'une des méthodes de gestion de données NA dans une ACP consiste à remplacer la valeur manquante par la moyenne de la variable.
+L'ACP est testée en appliquant cette méthode.
+
+## Représentation graphique
+
+```{r out.width=c('50%', '50%'), fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 1: AFC du tableau des espèces"}
+acp1<-dudi.pca(env2, scannf=F, nf=2,scale=TRUE, row.w = coa1$lw)
+par(mfrow=c(2,1))
+s.corcircle(acp1$co)
+s.label(acp1$li)
+```
+
+## Interprétation des résultats
+
+Les quadrats situés à gauche du graphique correspondent aux crêtes ventées avec une altitude élevée, un pH élevé qui correspond à des sols plus calcaires avec des roches qui affleurent. Les quadrats situés à droite du graphique correspondent plutôt aux combes à neige avec des altitudes plus faibles, et une teneur en eau plus élevée.
+=> à vérifier sur Qgis
+
+# Etude de coinertie
+## Représentation graphique
+
+```{r}
+coiner<-coinertia(coa1, acp1, scannf = F, nf = 2)
+plot(coiner)
+par(mfrow=c(2,1))
+s.label(coiner$c1)
+s.label(coiner$l1)
+```
+
+## Interprétation
+
