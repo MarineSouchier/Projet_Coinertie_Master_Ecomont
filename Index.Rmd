@@ -14,7 +14,7 @@ output:
     df_print: kable
 ---
 
-Ce projet est réalisé dans le cadre du Master 2 ECOMONT et porte sur l'étude de coinertie entre des données de dominances végétales et des paramètres abiotiques collectés sur 52 quadrats du site d'ARAVO en 2022 (seules les données SMOC datent de 1997 à 1999).
+Ce projet est réalisé dans le cadre du Master 2 ECOMONT et porte sur l'étude de coinertie entre un tableau de dominances végétales et un tableau rassemblant les paramètres abiotiques collectés sur 53 quadrats du site d'ARAVO en 2022 (seules les données SMOD (snow melt-out date) datent de 1997 à 1999).
 
 # Chargement des librairies
 ***
@@ -26,79 +26,104 @@ library(ade4)
 library(kableExtra)
 library(knitr)
 library(splines)
-library(plotly)
 library(DT)
 library(Hmisc)
 library(FactoMineR)
 library(factoextra)
+library(vegan)
+library(RVAideMemoire)
 ```
 
-# Import et description du jeu de données
+# Import et description des deux tableaux de données
 ***
 
-## Import du tableau des espèces
+## Import du tableau de dominances végétales
+
+Le tableau de dominances végétales rassemble les informations de présence/absence d'espèces en tant qu'espèces dominantes sur 53 quadrats de 1 m sur 1 m réalisés sur le site d'ARAVO.
+
+```{r, echo=FALSE}
+setwd(".")
+spe <- read.csv2('Especes2.csv', row.names = 1)
+```
 
 ```{r, echo=FALSE, fig.cap="Tableau 1: Tableau des espèces."}
-setwd(".")
-spe <- read.csv2('Especes.csv', row.names = 1)
-datatable(spe, rownames = FALSE, filter="top", options = list(pageLength = 5, scrollX=T))
+spe
 ```
-Le tableau des espèces rassemble les informations de présence/absence d'espèces en tant qu'espèces dominantes sur 53 quadrats de 1 m sur 1 m réalisés sur le site d'ARAVO.
+
+<center>
+*Tableau 1: Tableau des dominances végétales.*
+<center>
 
 ## Import du tableau abiotique
 
+Le tableau abiotique rassemble les paramètres abiotiques associés aux 53 quadrats à savoir:
+<br>
+-l'aspect = la direction horizontale de la pente en degrés. 0° signifie que la pente est face au Nord, 90° face à l’Est, 180° face au sud et 270° face à l’Ouest.
+<br>
+-L'altitude issu du MNT (en m) via le logiciel QGIS
+<br>
+-le pH du sol mesuré à l'aide d'un pHmètre
+<br>
+-la teneur en eau du sol mesurée à partir d'un conductimètre (en µS/cm)
+<br>
+-la pente des sites récupérée du MNT (en degrés) via le logiciel QGIS
+<br>
+-le SMOD exprimé en tant qu'isoclines moyennes de la fonte des neiges en jours juliens (1 étant l'isocline de déneigement la plus précoce et 8 étant l'isocline de déneigement la plus tardive). Les dates de fonte des neiges ont été documentées à partir d'une enquête réalisée au cours des années 1997-1999. Même si les données sont antérieures aux autres données abiotiques, elles ont été conservées dans l'étude de co-inertie comme proxy de la topographie sur le terrain afin d'identifier les habitats typiques des combes à neige.
+<br>
 ```{r, echo=FALSE, fig.cap="Tableau 2: Tableau abiotique."}
 setwd(".")
-env <- read.csv2('Abiotique2.csv', dec = ".", row.names = 1)
+env <- read.csv2('Abiotique3.csv', dec = ".", row.names = 1)
 datatable(env, rownames = TRUE, filter="top", options = list(pageLength = 5, scrollX=T))
 ```
 
-Le tableau abiotique rassemble les paramètres abiotiques associés aux 52 quadrats à savoir:
-<br>
--l'Aspect = la direction horizontale de la pente. 0° signifie que la pente est face au Nord, 90° face à l’Est, 180° face au sud et 270° face à l’Ouest.
-<br>
--L'Altitude issu du MNT
-<br>
--le pH du sol obtenue à l'aide d'un pHmètre
-<br>
--la teneur en eau du sol obtenue à partir de mesures de conductimétrie
-<br>
--la pente des sites récupérée du MNT
-<br>
--le SMOD (snow melting date) exprimé en tant qu'isoclines moyennes de la fonte des neiges en jours juliens (1 étant l'isocline de déneigement la plus précoce et 8 étant l'isocline de déneigement la plus tardive). Les dates de fonte des neiges ont été documentées à partir d'une enquête réalisée au cours des années 1997-1999. Même si les données sont antérieures aux autres données abiotiques, elles ont été conservées comme proxy topographique afin d'identifier les habitats typiques des combes à neige.
-<br>
 
-# AFC du tableau des espèces
+
+# AFC du tableau des dominances végétales
 ## Représentation graphique de l'AFC
 
-Une AFC est réalisée sur les données associées au tableau des espèces.
+Une AFC (analyse factorielle des correspondances) est réalisée sur les données associées au tableau des dominances végétales.
 
-```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 1: AFC du tableau des espèces"}
+```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 1: AFC du tableau des dominances végétales"}
 coa1 <-dudi.coa(spe, scannf=FALSE, nf=2)
 par(mfrow=c(2,1))
 s.label(coa1$co, clabel=0.7)
 s.label(coa1$li, clabel=0.7)
 ```
+## Interprétation des résultats
+
+Un étagement des espèces est observé avec les espèces résistantes au gel et au vent, plutôt typiques des crêtes ventées, situées en bas à droite du graphique telles que Carex myosuroides ou Androsace vitaliana (Varricchione et al 2022). En bas à gauche du graphique, des espèces plus mésophiles typiques des habitats situés quelques mètres sous les crêtes sont retrouvées telles que Poa alpina, Festuca violacea et Carex sempervirens (Liberati et al 2019, Varricchione et al 2022). 
+<br>
+Les espèces plutôt typiques des combes à neige sont situées en haut du graphique  telles que Carex foetida, Alopecurus alpinus ou Alchemilla pentaphyllea (Matteodo et al 2016, Liberati et al 2019).
+
+## Variance expliquée par l'AFC
 
 Le pourcentage de variance expliqué par l'AFC est présenté sur la figure 2. Il faut additionner 5 axes pour pouvoir expliquer 55% de la variance observée.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+head(inertia.dudi(coa1))
+```
+
+<br>
+
+<center>
+*Tableau 3: % de variance expliqué par l'AFC.*
+<center>
+
 
 ```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 2: % de variance expliqué par l'AFC"}
 fviz_screeplot (coa1) +
   geom_hline (yintercept = 12.5962292, linetype = 2, color = "red")
+get_eigenvalue(coa1)
 ```
 
-## Interprétation des résultats
 
-On observe un étagement des espèces avec les espèces plutôt typiques des crêtes ventées situées en bas du graphique telles que Poa alpina, Carex myosuroides, Festuca violacea, Potentilla crantzii (Liberati et al 2019, Varricchione et al 2022). 
-<br>
-Les espèces plutôt typiques des combes à neige sont situées en haut du graphique  telles que Carex foetida ou Alchemilla pentaphyllea (Matteodo et al 2016, Liberati et al 2019).
 
-# Analyse mixte du tableau abiotique
+# ACP du tableau abiotique
 ## Gestion des valeurs NA
 
-La variable SMOC n'est pas transformée en facteur similairement à la méthode appliquée au sein de la publication (Choler, 2005).
+La variable SMOD n'est pas transformée en facteurs similairement à la méthode appliquée au sein de la publication de Choler en 2005.
 <br>
-Une valeur "NA" est présente dans le jeu de données. L'une des méthodes de gestion de données NA dans une ACP consiste à remplacer la valeur manquante par la moyenne de la variable.
+Une valeur "NA" est présente dans le tableau pour la variable "teneur en eau". L'une des méthodes de gestion de données NA dans une ACP (analyse en composantes principales) consiste à remplacer la valeur manquante par la moyenne de la variable.
 
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 which(is.na(env),arr.ind=TRUE)
@@ -106,64 +131,75 @@ env2 <- env
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-env2[is.na(env2)] <- mean(env$TeneurEau, na.rm = T)
+env2[is.na(env2)] <- mean(env$Teneur_eau, na.rm = T)
 ```
 
-## Représentation graphique
+## Représentation graphique de l'ACP
 
-Une analyse multivariée utilisant la fonction dudi.hillssmith est réalisée pour prendre en compte le fait que les variables du jeu de données soit à la fois factorielles et quantitatives. 
-Le poids des axes de l'analyse multivariee mixte est pondéré par le poids des axes de l'AFC pour pouvoir réaliser l'étude de coinertie par la suite. En effet, la fonction "coinertia" requiert un poids des lignes identifiques pour les deux diagrammes de dualité.
+Une ACP est réalisée sur les données abiotiques. 
+Le poids des axes de l'ACP est pondéré par le poids des axes de l'AFC pour pouvoir réaliser l'étude de coinertie des deux tableaux par la suite. En effet, la fonction "coinertia" requiert un poids des lignes identifiques pour l'AFC et l'ACP
 
-```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 3: Analyse mixte du tableau abiotique"}
-dudienv<-dudi.hillsmith(env2, scannf = FALSE, nf = 3, row.w=coa1$lw)
-scatter(dudienv) 
+```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 3: ACP du tableau abiotique"}
+acp1<-dudi.pca(env2,scannf=F, scale=T, center=T, nf=5, row.w=coa1$lw)
 par(mfrow=c(2,1))
-s.label(dudienv$co, clabel=0.7) 
-s.label(dudienv$li, clabel=0.7)
+s.corcircle(acp1$co)
+s.label(acp1$li)
 ```
-Le pourcentage de variance expliqué par l'analyse mixte est présenté sur la figure 4. 
-
-```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 4: Variance expliquée par l'analyse mixte"}
-plot(dudienv$eig, type = "b")
-```
-
-3 axes sont retenus selon la méthode du coude.
 
 ## Interprétation des résultats
 
-Les quadrats situés en bas du graphique sont ceux avec une teneur en eau et un SMOD élevé et correspondent ainsi aux quadrats typiques des combes à neige. Les sols avec des SMOD tardifs sont généralement plus acides avec des pH faibles.
+Les quadrats situés en bas à droite du graphique sont ceux présentant un SMOD élevé, une pente faible et une altitude faible et correspondent ainsi aux quadrats typiques des combes à neige. Les sols avec des SMOD tardifs sont généralement plus acides avec des pH faibles (Choler, 2005).
 <br>
-Les quadrats situés en haut du graphique correspondent aux crêtes ventés avec une altitude élevée, un pH élevé illustrant des sols plus basiques en raison des roches qui affleurent. 
+Les quadrats situés en haut et à gauche du graphique correspondent aux crêtes ventés avec une altitude et une pente élevées, un pH élevé illustrant des sols plus basiques en raison des roches qui affleurent. 
 <br>
-Il est toutefois surprenant que les axes relatifs aux variables SMOD et pente ne soient pas plus opposés.
+Les quadrats situés en haut à droite correspondent aux milieux de versant avec des pentes, SMOD et altitudes moyennes.
+<br>
+Les variables teneur en eau et aspect sont corrélées, indiquant que l'humidité des sols est corrélée à son exposition.
 
-# Etude de coinertie
-## Représentation graphique
+## Variance expliquée par l'ACP
 
-```{r, echo=FALSE, include=TRUE}
-coiner<-coinertia(coa1, dudienv, scannf = F, nf = 2)
+Le pourcentage de variance expliqué par l'ACP est présenté sur la figure 4. Deux axes permettent d'expliquer 64% de la variance observée. 2 axes sont retenus selon la "méthode du coude".
+
+<center>
+*Tableau 4: % de variance expliqué par l'ACP.*
+<center>
+```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 4: Variance (Eigenvalues) expliquée par l'ACP"}
+inertia.dudi(acp1)
+plot(acp1$eig, type = "b")
 ```
 
-```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 5: Coinertie entre l'AFC des espèces et l'analyse mixte des paramètres abiotiques"}
+
+
+
+# Etude de coinertie
+## Représentation graphique de la coinertie
+
+```{r, echo=FALSE, include=TRUE}
+coiner<-coinertia(coa1, acp1, scannf = F, nf = 2)
+```
+
+```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 5: Coinertie entre l'AFC des dominances végétales et l'ACP des paramètres abiotiques"}
 plot(coiner)
 par(mfrow=c(2,1))
 s.label(coiner$c1)
 s.label(coiner$l1)
 ```
-Le pourcentage de variance expliqué par la coinertie est présenté sur la figure 6. 
-```{r, fig.show='hold', message=FALSE, warning=FALSE, echo=FALSE, fig.cap="Figure 6: Variance expliquée par la coinertie"}
-plot(coiner$eig, type = "b")
-inertia.dudi(coiner)
-```
-
 ## Interprétation
 
-L'axe 1 des paramètres abiotiques a été inversé. Pour les espèces, l'axe 2 a été inversée et l'axe 1 a subit une rotation de 90°C.
-Les flêches qui indiquent ou se trouvaient les quadrats en fonction de l'environnement semblent se diriger vers l'exterieur donc ce sont plutot les variables environnementales qui discriminent les sites.
+Les axes 1 et 2 de l'AFC des dominances végétales ont subit une rotation de 90°C. L'axe 2 de l'ACP des paramètres abiotiques a été inversé. 
 <br>
-On va plutôt retrouver les espèces de combes à neige vers le bas du graphique et celles typiques des crêtes ventées vers le haut du graphique. Salix herbacea et Geum montanum, plutôt typiques des milieux de versant sont situés proches des espèces typiques des crêtes et qui pourrait être une conséquence des plus hautes températures observées qui engendreraient une remontée de certaines espèces.
+Les flèches qui indiquent ou se trouvaient les quadrats en fonction de l'environnement semblent se diriger vers l'exterieur donc ce sont plutôt les variables environnementales qui discriminent les sites.
 <br>
-Un élément reste surprenant: la pente et le SMOD sont corrélés ce qui est inatendu et peut peut être être expliqué par la microtopographie du site qui complique le relation linéaire attendue entre pente et SMOD.
+Avant d'aller plus loin dans l'analyse, il faut vérifier qu’il y a bien une co-inertie significative via un test de Monte Carlo.
 
+## Test de la significativité de la coinertie
 
+Le test est réalisé via la fonction randtest en indiquant le numéro de l'AFC dans les arguments 
+
+```{r, fig.show='hold', message=FALSE, warning=FALSE, fig.cap="Figure 7: Significativité du test de coinertie"}
+randtest(coiner, fixed=1)
+plot(randtest(coiner, fixed=1))
+```
+
+La p value n'est pas significative (p value > 0.1) donc la coinertie entre les deux tableaux n'est pas significative. Cela signifie que les paramètres abiotiques sélectionnés ne permettent pas d'expliquer la répartition des espèces dominantes sur les quadrats concernés.
 
